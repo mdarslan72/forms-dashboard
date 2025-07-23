@@ -15,6 +15,9 @@ export interface Form {
 }
 
 export default function FormsUI() {
+  // Filter and view state
+  const [sortByRecent, setSortByRecent] = useState(false);
+  const [viewType, setViewType] = useState<"list" | "grid">(() => "list");
   // Search handler for SearchBar
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -35,11 +38,17 @@ export default function FormsUI() {
   const visibleForms = isRoot
     ? forms
     : folders.find((f) => f.name === activeFolder)?.forms || [];
-  const filteredForms = visibleForms.filter(
+  let filteredForms = visibleForms.filter(
     (form) =>
       form.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       form.updatedBy.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  if (sortByRecent) {
+    filteredForms = [...filteredForms].sort(
+      (a, b) =>
+        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+    );
+  }
   const totalPages = Math.ceil(filteredForms.length / formsPerPage);
   const startIdx = (currentPage - 1) * formsPerPage;
   const endIdx = startIdx + formsPerPage;
@@ -124,11 +133,37 @@ export default function FormsUI() {
         {/* Controls */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              <Clock className="w-5 h-5 text-gray-500" />
+            <button
+              className={`p-2 border rounded-lg ${
+                sortByRecent
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-300 hover:bg-gray-50"
+              }`}
+              title="Sort by Last Updated"
+              onClick={() => setSortByRecent((s) => !s)}
+            >
+              <Clock
+                className={`w-5 h-5 ${
+                  sortByRecent ? "text-blue-600" : "text-gray-500"
+                }`}
+              />
             </button>
-            <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              <List className="w-5 h-5 text-gray-500" />
+            <button
+              className={`p-2 border rounded-lg ${
+                viewType === "list"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-300 hover:bg-gray-50"
+              }`}
+              title="Toggle List/Grid View"
+              onClick={() =>
+                setViewType((v) => (v === "list" ? "grid" : "list"))
+              }
+            >
+              <List
+                className={`w-5 h-5 ${
+                  viewType === "list" ? "text-blue-600" : "text-gray-500"
+                }`}
+              />
             </button>
           </div>
           <SearchBar
@@ -164,9 +199,40 @@ export default function FormsUI() {
             </div>
           </div>
         )}
-        {/* Forms Table */}
+        {/* Forms Table or Grid */}
         {currentForms.length > 0 ? (
-          <Table forms={currentForms} />
+          viewType === "list" ? (
+            <Table forms={currentForms} />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {currentForms.map((form) => (
+                <div
+                  key={form.id}
+                  className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="text-lg font-semibold text-gray-900 mb-1">
+                      {form.name}
+                    </div>
+                    <div className="text-sm text-gray-500 mb-2">
+                      Last Updated: {form.lastUpdated}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Updated By: {form.updatedBy}
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <button
+                      className="p-1 hover:bg-gray-100 rounded text-gray-400"
+                      title="More options"
+                    >
+                      <span style={{ fontSize: "1.2em" }}>⋮</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center">
             <span className="text-gray-500">
