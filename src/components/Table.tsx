@@ -3,9 +3,10 @@ import type { Form } from "../App";
 
 interface TableProps {
   forms: Form[];
+  onMoreOptionsClick: (formId: string, event: React.MouseEvent<HTMLButtonElement>) => void; // New prop
 }
 
-export default function Table({ forms }: TableProps) {
+export default function Table({ forms, onMoreOptionsClick }: TableProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* Table Header */}
@@ -32,9 +33,17 @@ export default function Table({ forms }: TableProps) {
               <span className="text-gray-600">{form.updatedBy}</span>
             </div>
             <div className="col-span-1 flex justify-end">
-              <button className="p-1 hover:bg-gray-100 rounded">
-                <MoreVertical className="w-4 h-4 text-gray-400" />
-              </button>
+              <button
+                    className="p-1 hover:bg-gray-100 rounded"
+                    title="More options" // Optional: Keep title for a tooltip on hover
+                    aria-label={`More options for ${form.name}`} // Add aria-label for accessibility
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click from firing
+                     onMoreOptionsClick(form.id, e); // Call the handler
+                    }}
+                  >
+                   <MoreVertical className="w-4 h-4 text-gray-400" />
+                </button>
             </div>
           </div>
         ))}

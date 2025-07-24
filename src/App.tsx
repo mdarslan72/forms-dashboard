@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Clock, List } from "lucide-react";
+import { Clock, List, MoreVertical } from "lucide-react";
 import Header from "./components/Header";
 import CreateFolderModal from "./components/CreateFolderModal";
+import FolderOptionsModal from "./components/FolderOptionsModal";
+import FormOptionsModal from "./components/FormOptionsModal"; // Import the new component
 import SearchBar from "./components/SearchBar";
 import Table from "./components/Table";
 import Pagination from "./components/Pagination";
@@ -30,7 +32,17 @@ export default function FormsUI() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const formsPerPage = 7;
+
+  // Modals state
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [folderOptionsPosition, setFolderOptionsPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showRenameFolder, setShowRenameFolder] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+  // New state for FormOptionsModal
+  const [formOptionsPosition, setFormOptionsPosition] = useState<{ x: number; y: number } | null>(null);
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+
 
   // Filtered forms for current view (root or folder)
   const allFolders = folders.map((f) => f.name);
@@ -61,6 +73,37 @@ export default function FormsUI() {
     }
     setShowCreateFolder(false);
   };
+
+  // Handle renaming a folder
+  const handleRenameFolder = (newName: string) => {
+    if (selectedFolder && newName.trim() !== "" && newName !== selectedFolder) {
+      setFolders(
+        folders.map((folder) =>
+          folder.name === selectedFolder ? { ...folder, name: newName } : folder
+        )
+      );
+      // If the renamed folder was the active one, update activeFolder
+      if (activeFolder === selectedFolder) {
+        setActiveFolder(newName);
+      }
+    }
+    setShowRenameFolder(false);
+    setSelectedFolder(null);
+  };
+
+  // Handle deleting a folder
+  const handleDeleteFolder = () => {
+    if (selectedFolder) {
+      setFolders(folders.filter((folder) => folder.name !== selectedFolder));
+      // If the deleted folder was the active one, go back to root
+      if (activeFolder === selectedFolder) {
+        setActiveFolder(null);
+      }
+    }
+    setFolderOptionsPosition(null); // Close dropdown
+    setSelectedFolder(null);
+  };
+
 
   // Add form (for demo, just adds a mock form)
   const handleAddForm = () => {
@@ -100,6 +143,72 @@ export default function FormsUI() {
     setCurrentPage(1);
   };
 
+  // Handle more options for a folder
+  const handleFolderMoreOptions = (folderName: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setFolderOptionsPosition({ x: rect.right, y: rect.bottom });
+    setSelectedFolder(folderName);
+  };
+
+  // Handle more options for a form
+  const handleFormMoreOptions = (formId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setFormOptionsPosition({ x: rect.right, y: rect.bottom });
+    setSelectedFormId(formId);
+  };
+
+  // Placeholder functions for form options
+  const handleEditForm = () => {
+    console.log("Edit form:", selectedFormId);
+    setFormOptionsPosition(null);
+  };
+
+  const handlePreviewForm = () => {
+    console.log("Preview form:", selectedFormId);
+    setFormOptionsPosition(null);
+  };
+
+  const handleViewSubmission = () => {
+    console.log("View Submission for form:", selectedFormId);
+    setFormOptionsPosition(null);
+  };
+
+  const handleDuplicateForm = () => {
+    console.log("Duplicate form:", selectedFormId);
+    // Logic to duplicate the form
+    setFormOptionsPosition(null);
+  };
+
+  const handleShareForm = () => {
+    console.log("Share form:", selectedFormId);
+    setFormOptionsPosition(null);
+  };
+
+  const handleMoveToFolder = () => {
+    console.log("Move form to folder:", selectedFormId);
+    // Logic to open a modal/dialog for moving to a folder
+    setFormOptionsPosition(null);
+  };
+
+  const handleDeleteForm = () => {
+    console.log("Delete form:", selectedFormId);
+    if (selectedFormId) {
+      if (isRoot) {
+        setForms(forms.filter(form => form.id !== selectedFormId));
+      } else {
+        setFolders(
+          folders.map(folder =>
+            folder.name === activeFolder
+              ? { ...folder, forms: folder.forms.filter(form => form.id !== selectedFormId) }
+              : folder
+          )
+        );
+      }
+    }
+    setFormOptionsPosition(null);
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -107,11 +216,48 @@ export default function FormsUI() {
         onCreateFolder={() => setShowCreateFolder(true)}
         onAddForm={handleAddForm}
       />
+
+      {/* Create Folder Modal */}
       <CreateFolderModal
         open={showCreateFolder}
         onClose={() => setShowCreateFolder(false)}
         onConfirm={handleCreateFolder}
+        mode="create" // Specify create mode
       />
+
+      {/* Folder Options Modal (now a dropdown) */}
+      <FolderOptionsModal
+        position={folderOptionsPosition} // Pass position directly
+        onClose={() => setFolderOptionsPosition(null)}
+        onRename={() => {
+          setShowRenameFolder(true);
+          setFolderOptionsPosition(null); // Close dropdown
+        }}
+        onDelete={handleDeleteFolder}
+      />
+
+      {/* Form Options Modal (new dropdown for forms) */}
+      <FormOptionsModal
+        position={formOptionsPosition}
+        onClose={() => setFormOptionsPosition(null)}
+        onEdit={handleEditForm}
+        onPreview={handlePreviewForm}
+        onViewSubmission={handleViewSubmission}
+        onDuplicate={handleDuplicateForm}
+        onShare={handleShareForm}
+        onMoveToFolder={handleMoveToFolder}
+        onDelete={handleDeleteForm}
+      />
+
+      {/* Rename Folder Modal (reusing CreateFolderModal) */}
+      <CreateFolderModal
+        open={showRenameFolder}
+        onClose={() => setShowRenameFolder(false)}
+        onConfirm={handleRenameFolder}
+        mode="rename" // Specify rename mode
+        initialFolderName={selectedFolder || ""} // Pass the current folder name
+      />
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Navigation */}
@@ -184,16 +330,32 @@ export default function FormsUI() {
               {folders.map((folder) => (
                 <div
                   key={folder.name}
-                  className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 cursor-pointer"
-                  onClick={() => handleOpenFolder(folder.name)}
+                  className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50"
                 >
-                  <div className="col-span-5 font-medium text-blue-700 flex items-center">
+                  <div
+                    className="col-span-5 font-medium text-blue-700 flex items-center cursor-pointer"
+                    onClick={() => handleOpenFolder(folder.name)}
+                  >
                     <span className="mr-2">📁</span> {folder.name}
                   </div>
-                  <div className="col-span-3 text-gray-600">
+                  <div
+                    className="col-span-3 text-gray-600 cursor-pointer"
+                    onClick={() => handleOpenFolder(folder.name)}
+                  >
                     {folder.forms.length}
                   </div>
-                  <div className="col-span-4"></div>
+                  <div className="col-span-4 flex justify-end items-center">
+                    <button
+                      className="p-1 hover:bg-gray-100 rounded"
+                      title="More options"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFolderMoreOptions(folder.name, e);
+                      }}
+                    >
+                      <MoreVertical className="w-4 h-4 text-gray-400" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -202,7 +364,7 @@ export default function FormsUI() {
         {/* Forms Table or Grid */}
         {currentForms.length > 0 ? (
           viewType === "list" ? (
-            <Table forms={currentForms} />
+            <Table forms={currentForms} onMoreOptionsClick={handleFormMoreOptions} />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {currentForms.map((form) => (
@@ -225,6 +387,8 @@ export default function FormsUI() {
                     <button
                       className="p-1 hover:bg-gray-100 rounded text-gray-400"
                       title="More options"
+                      aria-label={`More options for ${form.name}`}
+                      onClick={(e) => handleFormMoreOptions(form.id, e)}
                     >
                       <span style={{ fontSize: "1.2em" }}>⋮</span>
                     </button>

@@ -1,36 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { X } from "lucide-react"; // Importing X icon for close button
 
 interface CreateFolderModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (folderName: string) => void;
+  onConfirm: (name: string) => void;
+  mode: 'create' | 'rename'; // Added mode prop
+  initialFolderName?: string; // Added initialFolderName for rename mode
 }
 
 export default function CreateFolderModal({
   open,
   onClose,
   onConfirm,
+  mode,
+  initialFolderName = "", // Default to empty string
 }: CreateFolderModalProps) {
-  const [folderName, setFolderName] = useState("");
+  const [folderName, setFolderName] = useState(initialFolderName);
   const [touched, setTouched] = useState(false);
+
+  // Update folderName when initialFolderName changes (for rename mode)
+  useEffect(() => {
+    if (open && mode === 'rename' && initialFolderName) {
+      setFolderName(initialFolderName);
+    } else if (open && mode === 'create') {
+      setFolderName(""); // Clear for create mode when opening
+    }
+  }, [open, mode, initialFolderName]);
 
   const handleConfirm = () => {
     if (folderName.trim()) {
       onConfirm(folderName.trim());
-      setFolderName("");
+      setFolderName(""); // Clear input after successful confirm
       setTouched(false);
     } else {
-      setTouched(true);
+      setTouched(true); // Show error if input is empty
     }
   };
 
   const handleClose = () => {
-    setFolderName("");
+    setFolderName(initialFolderName); // Reset to initial name on close for rename, or empty for create
     setTouched(false);
     onClose();
   };
 
   if (!open) return null;
+
+  const modalTitle = mode === 'create' ? 'Create folder' : 'Rename folder';
+  const confirmButtonText = mode === 'create' ? 'Confirm' : 'Rename';
+  const placeholderText = mode === 'create' ? 'Folder name' : 'New folder name';
 
   return (
     <div
@@ -42,11 +60,11 @@ export default function CreateFolderModal({
     >
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-8 relative">
         <button
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
           onClick={handleClose}
           aria-label="Close"
         >
-          &times;
+          <X className="w-5 h-5" /> {/* Using Lucide React X icon */}
         </button>
         <div className="flex flex-col items-center mb-4">
           <div className="bg-blue-100 rounded-full p-3 mb-2">
@@ -57,7 +75,7 @@ export default function CreateFolderModal({
               />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold mb-1">Create folder</h2>
+          <h2 className="text-xl font-semibold mb-1">{modalTitle}</h2>
           <p className="text-gray-500 text-sm">
             Folder will help to organize forms
           </p>
@@ -72,7 +90,7 @@ export default function CreateFolderModal({
                 ? "border-red-500"
                 : "border-gray-300"
             }`}
-            placeholder="Folder name"
+            placeholder={placeholderText}
             value={folderName}
             onChange={(e) => setFolderName(e.target.value)}
             onBlur={() => setTouched(true)}
@@ -95,7 +113,7 @@ export default function CreateFolderModal({
             className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
             onClick={handleConfirm}
           >
-            Confirm
+            {confirmButtonText}
           </button>
         </div>
       </div>
